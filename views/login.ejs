@@ -55,7 +55,7 @@
                     </button>
 
                     <div class="forgot-password">
-                        <a href="/forgot-password">Forgot your password?</a>
+                        <a href="/recover-password">Forgot your password?</a>
                     </div>
 
                     <div id="error-div" class="error-message"></div>
@@ -179,7 +179,7 @@
 
                         // Add a slight delay for better UX
                         setTimeout(function () {
-                            window.location.href = '/dashboard';
+                            window.location.href = '/';
                         }, 1000);
                     },
                     error: function (xhr, status, error) {

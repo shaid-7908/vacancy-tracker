@@ -10,10 +10,12 @@ authRouter.post('/register-admin', authController.registerTestAdmin)
 authRouter.post('/login-user', authController.loginUser)
 authRouter.post('/refresh-token', authController.refreshToken)
 authRouter.post('/logout', authController.logoutUser)
-authRouter.get('/logout', authController.logoutUser) // For direct browser access
+authRouter.post("/recover-password",authController.sendRecoveryPasswordMail);
+
 
 // EJS Render Routes
 authRouter.get('/login', authController.renderLoginPage)
-authRouter.get('/dashboard', authChecker, authController.renderDashBoard)
+authRouter.get('/', authChecker, authController.renderDashBoard)
+authRouter.get('/recover-password',authController.renderForgotPassword)
 
 export default authRouter

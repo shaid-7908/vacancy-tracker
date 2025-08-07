@@ -10,6 +10,9 @@ import STATUS_CODES from "../utils/status.codes";
 import { sendSuccess, sendError } from "../utils/unified.response";
 import { loginInputSchema } from "../validation/auth.validation";
 import { JwtPayload } from "../types/auth.types";
+import {v4 as uuidv4} from 'uuid'
+import { OTPModel } from "../model/user.model";
+import { sendRecoveryLinkEmail } from "../utils/mail.utils";
 
 class AuthController {
   // Register new user
@@ -369,6 +372,25 @@ class AuthController {
     return sendSuccess(res, "Logged out successfully", null);
   });
 
+  sendRecoveryPasswordMail = asyncHandler(async (req,res)=>{
+       const checkEmialRegisterd = await UserRepository.emailExists(req.body?.email)
+       if(!checkEmialRegisterd) return sendError(res,'Email is nor registered',null,STATUS_CODES.UNAUTHORIZED)
+       const currentuser = await UserRepository.findByEmail(req.body.email)
+       const idtoken = uuidv4()
+       const deleteMany = await OTPModel.deleteMany({user_id:currentuser?._id})
+       await OTPModel.create({
+        user_id:currentuser?._id,
+        user_email:currentuser?.email,
+        user_token:idtoken
+       })
+       const mailsendingStatus = await sendRecoveryLinkEmail(req.body?.email,currentuser?._id as string,idtoken)
+       if(mailsendingStatus){
+        return sendSuccess(res,`Recovery mail send to ${req.body.email}`,null,)
+       }else{
+        return sendError(res,'Failed to send mail',null,STATUS_CODES.INTERNAL_SERVER_ERROR)
+       }
+  })
+
   /*
    *  ================================= EJS RENDERERS ==================================
    */
@@ -379,10 +401,14 @@ class AuthController {
   renderDashBoard = asyncHandler(async (req, res) => {
     // Pass user data to the template
     res.render("index", { 
-      user: req.user,
+      default_user: req.user,
       title: "Dashboard - Vacancy Tracker"
     });
   });
+
+  renderForgotPassword = asyncHandler(async (req,res)=>{
+   res.render('password')
+  })
 }
 
 export { AuthController };

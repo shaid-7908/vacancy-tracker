@@ -45,4 +45,26 @@ const userSchema = new Schema<UserDocument>(
   }
 );
 
-export const UserModel = model<UserDocument>("User", userSchema);
+export const UserModel = model<UserDocument>("users", userSchema);
+
+const OTPSchema = new Schema({
+  user_id:{
+    type:Schema.Types.ObjectId,
+    ref:'users'
+  },
+  user_email:{
+    type:String
+  },
+  user_otp:{
+    type:Number
+  },
+  user_token:{
+    type:String
+  }
+},{timestamps:true})
+
+OTPSchema.index({user_email:1})
+OTPSchema.index({ user_id: 1 });
+
+
+export const OTPModel = model("user_otps",OTPSchema)

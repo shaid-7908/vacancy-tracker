@@ -402,4 +402,6 @@ export class UserRepository {
       throw new Error(`Failed to get user statistics: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
+  
 }
