@@ -7,6 +7,8 @@ import { connectDB } from './app/config/db.connection'
 import basicRouter from './app/routes/basic.route'
 import authRouter from './app/routes/auth.routes'
 import morgan from 'morgan'
+import session from "express-session";
+import flash from "connect-flash";
 
 const app = express()
 
@@ -16,7 +18,22 @@ const app = express()
 app.use(express.json())
 app.use(cookieParser())
 app.use(express.urlencoded({extended:true}))
-app.use(morgan('dev'))
+app.use(
+  session({
+    secret: "yourSecretKey",
+    resave: false,
+    saveUninitialized: true,
+  })
+);
+app.use(flash())
+app.use(morgan("dev"));
+app.use((req, res, next) => {
+  res.locals.success_msg = req.flash("success_msg");
+  res.locals.error_msg = req.flash("error_msg");
+  res.locals.delete_msg = req.flash("delete_msg");
+  next();
+});
+
 
 
 //if using multer to store files locally uncomment this 

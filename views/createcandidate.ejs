@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="Create a new candidate" />
+    <meta name="author" content="Vacancy Tracker" />
+    <title>Create Candidate | Vacancy Tracker</title>
+    <link href="css/styles.css" rel="stylesheet" />
+    <link href="css/recover-password-page.css" rel="stylesheet" />
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body>
+    <div class="password-reset-container">
+        <div class="reset-card">
+            <div class="reset-header">
+                <div class="reset-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h1 class="reset-title">Create Candidate</h1>
+                <p class="reset-subtitle">Add a new candidate to the tracker</p>
+            </div>
+
+            <div class="reset-body">
+                <div class="success-message" id="successMessage">
+                    <i class="fas fa-check-circle"></i>
+                    Candidate created successfully.
+                </div>
+
+                <div class="error-message" id="errorMessage">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="errorText">An error occurred. Please try again.</span>
+                </div>
+
+                <form id="candidateForm" method="POST" action="#">
+                    <div class="form-group">
+                        <input class="form-control-modern" id="firstName" type="text" placeholder="First name"
+                            required />
+                        <i class="fas fa-id-badge input-icon"></i>
+                    </div>
+
+                    <div class="form-group">
+                        <input class="form-control-modern" id="lastName" type="text" placeholder="Last name" required />
+                        <i class="fas fa-id-badge input-icon"></i>
+                    </div>
+
+                    <div class="form-group">
+                        <input class="form-control-modern" id="email" type="email" placeholder="Email" required
+                            autocomplete="email" />
+                        <i class="fas fa-envelope input-icon"></i>
+                    </div>
+
+                    <div class="form-group">
+                        <input class="form-control-modern" id="phone" type="tel" placeholder="Phone" required />
+                        <i class="fas fa-phone input-icon"></i>
+                    </div>
+
+                    <div class="form-group">
+                        <input class="form-control-modern" id="scheduledDate" type="date" placeholder="Scheduled date"
+                            required />
+                        <i class="fas fa-calendar input-icon"></i>
+                    </div>
+
+                    <div class="form-group">
+                        <input class="form-control-modern" id="actualDate" type="date"
+                            placeholder="Actual date (optional)" />
+                        <i class="fas fa-calendar-check input-icon"></i>
+                    </div>
+
+                    <div class="form-group">
+                        <select class="form-control-modern" id="arrivalStatus">
+                            <option value="scheduled" selected>Arrival: Scheduled</option>
+                            <option value="arrived">Arrival: Arrived</option>
+                            <option value="no-show">Arrival: No-show</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <input class="form-control-modern" id="skills" type="text"
+                            placeholder="Skills (comma-separated IDs)" required />
+                        <i class="fas fa-tags input-icon"></i>
+                    </div>
+
+                    <div class="form-group">
+                        <select class="form-control-modern" id="candidateStatus">
+                            <option value="new" selected>Status: New</option>
+                            <option value="assigned">Status: Assigned</option>
+                            <option value="hired">Status: Hired</option>
+                            <option value="rejected">Status: Rejected</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-reset" type="submit" id="createBtn">
+                        <span class="loading-spinner"></span>
+                        <span class="btn-text">Create</span>
+                    </button>
+                </form>
+
+                <div class="divider"><span>or</span></div>
+
+                <div class="auth-links">
+                    <a href="/" class="auth-link">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(function () {
+            const $form = $('#candidateForm');
+            const $btn = $('#createBtn');
+            const $btnText = $btn.find('.btn-text');
+            const $successMessage = $('#successMessage');
+            const $errorMessage = $('#errorMessage');
+            const $errorText = $('#errorText');
+
+            function setLoading(isLoading) {
+                if (isLoading) {
+                    $btn.addClass('loading').prop('disabled', true);
+                    $btnText.text('Creating...');
+                } else {
+                    $btn.removeClass('loading').prop('disabled', false);
+                    $btnText.text('Create');
+                }
+            }
+
+            function showSuccess() {
+                $successMessage.show();
+                $errorMessage.hide();
+            }
+
+            function showError(message) {
+                $errorText.text(message);
+                $errorMessage.show();
+                $successMessage.hide();
+            }
+
+            function hideMessages() {
+                $successMessage.hide();
+                $errorMessage.hide();
+            }
+
+            function isValidEmail(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
+
+            $form.on('submit', function (e) {
+                e.preventDefault();
+                hideMessages();
+
+                const firstName = $('#firstName').val().trim();
+                const lastName = $('#lastName').val().trim();
+                const email = $('#email').val().trim().toLowerCase();
+                const phone = $('#phone').val().trim();
+                const scheduledDate = $('#scheduledDate').val();
+                const actualDate = $('#actualDate').val();
+                const arrivalStatus = $('#arrivalStatus').val();
+                const candidateStatus = $('#candidateStatus').val();
+                const skillsRaw = $('#skills').val().trim();
+
+                if (!firstName || !lastName || !email || !phone || !scheduledDate || !skillsRaw) {
+                    showError('Please fill in all required fields.');
+                    return;
+                }
+                if (!isValidEmail(email)) {
+                    showError('Please enter a valid email address.');
+                    return;
+                }
+
+                const skills = skillsRaw
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean);
+
+                const payload = {
+                    first_name: firstName,
+                    last_name: lastName,
+                    contact: { email, phone },
+                    arrival: {
+                        scheduledDate: scheduledDate ? new Date(scheduledDate).toISOString() : null,
+                        actualDate: actualDate ? new Date(actualDate).toISOString() : null,
+                        status: arrivalStatus || 'scheduled'
+                    },
+                    skills,
+                    status: candidateStatus || 'new'
+                };
+
+                setLoading(true);
+
+                $.ajax({
+                    url: '/candidates',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function () {
+                        showSuccess();
+                        $form[0].reset();
+                    },
+                    error: function (xhr) {
+                        let message = 'Something went wrong. Please try again.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        } else if (xhr.status === 404) {
+                            message = 'Endpoint not found. Please ensure the API route for creating candidates is available.';
+                        }
+                        showError(message);
+                    },
+                    complete: function () {
+                        setLoading(false);
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+
+</html>

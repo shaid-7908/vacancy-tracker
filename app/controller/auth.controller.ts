@@ -11,8 +11,9 @@ import { sendSuccess, sendError } from "../utils/unified.response";
 import { loginInputSchema } from "../validation/auth.validation";
 import { JwtPayload } from "../types/auth.types";
 import {v4 as uuidv4} from 'uuid'
-import { OTPModel } from "../model/user.model";
+import { OTPModel, UserModel } from "../model/user.model";
 import { sendRecoveryLinkEmail } from "../utils/mail.utils";
+import mongoose from "mongoose";
 
 class AuthController {
   // Register new user
@@ -214,39 +215,42 @@ class AuthController {
     };
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
-    
+
     // Update refresh token in database
-    await UserRepository.updateRefreshToken(userData?._id as string, refreshToken);
-    
+    await UserRepository.updateRefreshToken(
+      userData?._id as string,
+      refreshToken
+    );
+
     // Set secure cookies
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 5 * 60 * 1000 // 5 minutes
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 5 * 60 * 1000, // 5 minutes
     });
-    
+
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
-    
-    return sendSuccess(res, "Login success", { 
+
+    return sendSuccess(res, "Login success", {
       user: {
         id: userData?._id,
         email: userData?.email,
         role: userData?.role,
-        name: userData?.name
-      }
+        name: userData?.name,
+      },
     });
   });
 
   // Refresh access token using refresh token
   refreshToken = asyncHandler(async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
-    
+
     if (!refreshToken) {
       return sendError(
         res,
@@ -258,10 +262,12 @@ class AuthController {
 
     try {
       // Verify refresh token
-      const decodedToken = await verifyRefreshToken(refreshToken) as JwtPayload;
-      
+      const decodedToken = (await verifyRefreshToken(
+        refreshToken
+      )) as JwtPayload;
+
       if (!decodedToken) {
-        res.clearCookie('refreshToken');
+        res.clearCookie("refreshToken");
         return sendError(
           res,
           "Invalid refresh token",
@@ -272,9 +278,9 @@ class AuthController {
 
       // Find user by refresh token
       const user = await UserRepository.findByRefreshToken(refreshToken);
-      
+
       if (!user) {
-        res.clearCookie('refreshToken');
+        res.clearCookie("refreshToken");
         return sendError(
           res,
           "Refresh token not found",
@@ -284,10 +290,10 @@ class AuthController {
       }
 
       // Check if user is still active
-      if (user.current_status !== 'active') {
+      if (user.current_status !== "active") {
         await UserRepository.clearRefreshToken(user._id as string);
-        res.clearCookie('accessToken');
-        res.clearCookie('refreshToken');
+        res.clearCookie("accessToken");
+        res.clearCookie("refreshToken");
         return sendError(
           res,
           "User account is not active",
@@ -309,9 +315,9 @@ class AuthController {
       // Set new access token cookie
       res.cookie("accessToken", newAccessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 5 * 60 * 1000 // 5 minutes
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 5 * 60 * 1000, // 5 minutes
       });
 
       return sendSuccess(res, "Access token refreshed successfully", {
@@ -319,17 +325,16 @@ class AuthController {
           id: user._id,
           email: user.email,
           role: user.role,
-          name: user.name
-        }
+          name: user.name,
+        },
       });
-
     } catch (error: any) {
-      console.error('Refresh token error:', error);
-      
-      res.clearCookie('accessToken');
-      res.clearCookie('refreshToken');
-      
-      if (error.name === 'TokenExpiredError') {
+      console.error("Refresh token error:", error);
+
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
+
+      if (error.name === "TokenExpiredError") {
         return sendError(
           res,
           "Refresh token has expired",
@@ -337,7 +342,7 @@ class AuthController {
           STATUS_CODES.UNAUTHORIZED
         );
       }
-      
+
       return sendError(
         res,
         "Failed to refresh token",
@@ -355,40 +360,75 @@ class AuthController {
         await UserRepository.clearRefreshToken(req.user.id);
       }
     } catch (error) {
-      console.error('Error clearing refresh token during logout:', error);
+      console.error("Error clearing refresh token during logout:", error);
       // Don't fail logout if this fails
     }
-    
+
     // Clear cookies
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
-    
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+
     // For EJS routes, redirect to login
-    if (req.headers.accept?.includes('text/html')) {
-      return res.redirect('/login?reason=logged_out');
+    if (req.headers.accept?.includes("text/html")) {
+      return res.redirect("/login?reason=logged_out");
     }
-    
+
     // For API routes, send JSON response
     return sendSuccess(res, "Logged out successfully", null);
   });
 
-  sendRecoveryPasswordMail = asyncHandler(async (req,res)=>{
-       const checkEmialRegisterd = await UserRepository.emailExists(req.body?.email)
-       if(!checkEmialRegisterd) return sendError(res,'Email is nor registered',null,STATUS_CODES.UNAUTHORIZED)
-       const currentuser = await UserRepository.findByEmail(req.body.email)
-       const idtoken = uuidv4()
-       const deleteMany = await OTPModel.deleteMany({user_id:currentuser?._id})
-       await OTPModel.create({
-        user_id:currentuser?._id,
-        user_email:currentuser?.email,
-        user_token:idtoken
-       })
-       const mailsendingStatus = await sendRecoveryLinkEmail(req.body?.email,currentuser?._id as string,idtoken)
-       if(mailsendingStatus){
-        return sendSuccess(res,`Recovery mail send to ${req.body.email}`,null,)
-       }else{
-        return sendError(res,'Failed to send mail',null,STATUS_CODES.INTERNAL_SERVER_ERROR)
-       }
+  sendRecoveryPasswordMail = asyncHandler(async (req, res) => {
+    const checkEmialRegisterd = await UserRepository.emailExists(
+      req.body?.email
+    );
+    if (!checkEmialRegisterd)
+      return sendError(
+        res,
+        "Email is nor registered",
+        null,
+        STATUS_CODES.UNAUTHORIZED
+      );
+    const currentuser = await UserRepository.findByEmail(req.body.email);
+    const idtoken = uuidv4();
+    const deleteMany = await OTPModel.deleteMany({ user_id: currentuser?._id });
+    await OTPModel.create({
+      user_id: currentuser?._id,
+      user_email: currentuser?.email,
+      user_token: idtoken,
+    });
+    const mailsendingStatus = await sendRecoveryLinkEmail(
+      req.body?.email,
+      currentuser?._id as string,
+      idtoken
+    );
+    if (mailsendingStatus) {
+      return sendSuccess(res, `Recovery mail send to ${req.body.email}`, null);
+    } else {
+      return sendError(
+        res,
+        "Failed to send mail",
+        null,
+        STATUS_CODES.INTERNAL_SERVER_ERROR
+      );
+    }
+  });
+
+  updatePasswordByRecoveryLink = asyncHandler(async (req,res)=>{
+     const userId = req.params.id
+     const {token} = req.query
+     const {password} = req.body
+     console.log('here')
+     try{
+     const findcurrentToporToken = await OTPModel.findOne({user_id:userId})
+     if(findcurrentToporToken?.user_token === token){
+      const newHashedPassword = await hashPassword(password)
+      const updatedUser = await UserRepository.updatePassword(userId,newHashedPassword)
+      return sendSuccess(res,'Password updated successfyll',null,STATUS_CODES.CREATED)
+     }
+     }catch(error){
+       return sendError(res,'Failed to update ,error occurred',null,STATUS_CODES.INTERNAL_SERVER_ERROR)
+     }
+     
   })
 
   /*
@@ -397,17 +437,47 @@ class AuthController {
   renderLoginPage = asyncHandler(async (req, res) => {
     res.render("login");
   });
-  
+
   renderDashBoard = asyncHandler(async (req, res) => {
     // Pass user data to the template
-    res.render("index", { 
+    res.render("index", {
       default_user: req.user,
-      title: "Dashboard - Vacancy Tracker"
+      title: "Dashboard - Vacancy Tracker",
     });
   });
 
-  renderForgotPassword = asyncHandler(async (req,res)=>{
-   res.render('password')
+  renderForgotPassword = asyncHandler(async (req, res) => {
+    res.render("password");
+  });
+  rener404Page = asyncHandler(async (req, res) => {
+    res.render("404page", { message: req.query.message });
+  });
+  renderRecoverPasswordByLink = asyncHandler(async (req,res)=>{
+     const userID = req.params.id
+     const {token} = req.query
+     if (!userID || !token) {
+       res.redirect(
+         `/404page?message=${encodeURIComponent("Link expired or broken")}`
+       )
+     }
+     try {
+      
+      const currentUser = await UserRepository.ejsFindById(userID);
+      res.render("recoverpassword", {
+        name: currentUser?.name,
+        email: currentUser?.email,
+        userid:userID,
+        token:token
+      });
+     } catch (error) {
+      req.flash('error_msg','Invalid id or token')
+      res.redirect(
+        `/404page?message=Failed to find user by email: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+     }
+     
   })
 }
 

@@ -28,6 +28,9 @@ export class UserRepository {
       throw new Error(`Failed to find user by ID: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+  static async ejsFindById(userId:string){
+    return await UserModel.findById(userId)
+  }
 
   /**
    * Find user by email
