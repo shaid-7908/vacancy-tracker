@@ -9,6 +9,7 @@ import authRouter from './app/routes/auth.routes'
 import morgan from 'morgan'
 import session from "express-session";
 import flash from "connect-flash";
+import commonRouter from './app/routes/common.routes'
 
 const app = express()
 
@@ -51,6 +52,7 @@ app.set("views", path.join(__dirname, "views"));
 
 app.use('/any-prefix',basicRouter)
 app.use(authRouter)
+app.use(commonRouter)
 
 
 

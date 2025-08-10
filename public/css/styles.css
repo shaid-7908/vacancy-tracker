@@ -666,6 +666,14 @@ progress {
     max-width: 1320px;
   }
 }
+
+.btn-group-gap > .btn {
+  margin-right: 4px;
+}
+.btn-group-gap > .btn:last-child {
+  margin-right: 0;
+}
+
 .row {
   --bs-gutter-x: 1.5rem;
   --bs-gutter-y: 0;

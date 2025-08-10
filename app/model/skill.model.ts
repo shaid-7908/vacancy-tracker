@@ -13,6 +13,9 @@ const SkillSchema = new Schema<SkillDocument>({
     }
 })
 
+SkillSchema.index({name:1})
+SkillSchema.index({skill_slug:1},{unique:true})
+
 const SkillModel = model<SkillDocument>('skills',SkillSchema)
 
 export {SkillModel}

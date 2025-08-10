@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="Bulk upload candidates via CSV" />
+    <meta name="author" content="Vacancy Tracker" />
+    <title>Bulk Upload Candidates | Vacancy Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
+    <link href="/css/styles.css" rel="stylesheet" />
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body class="sb-nav-fixed">
+    <%- include('layouts/topnav')%>
+        <div id="layoutSidenav">
+            <%- include('layouts/sidebar') %>
+                <div id="layoutSidenav_content">
+                    <main>
+                        <div class="container-fluid px-4">
+                            <h1 class="mt-4">Bulk Upload Candidates</h1>
+                            <ol class="breadcrumb mb-4">
+                                <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+                                <li class="breadcrumb-item active">Bulk Upload</li>
+                            </ol>
+
+                            <div class="card mb-4">
+                                <div class="card-header d-flex align-items-center justify-content-between">
+                                    <span><i class="fas fa-file-upload me-1"></i> Upload CSV</span>
+                                    <a class="btn btn-sm btn-outline-secondary" id="downloadSample" href="#">Download
+                                        sample CSV</a>
+                                </div>
+                                <div class="card-body">
+                                    <div id="successMessage" class="alert alert-success d-none" role="alert">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        <span>Uploaded successfully.</span>
+                                    </div>
+                                    <div id="errorMessage" class="alert alert-danger d-none" role="alert">
+                                        <i class="fas fa-exclamation-circle me-2"></i>
+                                        <span id="errorText">An error occurred. Please try again.</span>
+                                    </div>
+
+                                    <form id="bulkForm" enctype="multipart/form-data">
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <label for="file" class="form-label">CSV file</label>
+                                                <input id="file" type="file" name="file" class="form-control"
+                                                    accept=".csv" required />
+                                                <div class="form-text">
+                                                    Required columns:
+                                                    first_name,last_name,email,phone,scheduledDate,actualDate,status,skills
+                                                    (pipe-separated skill IDs using |)
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-4">
+                                            <button class="btn btn-primary" type="submit" id="uploadBtn">
+                                                <span class="spinner-border spinner-border-sm me-2 d-none" role="status"
+                                                    aria-hidden="true"></span>
+                                                <span class="btn-text">Upload</span>
+                                            </button>
+                                            <a href="/" class="btn btn-link">Back to Dashboard</a>
+                                        </div>
+                                    </form>
+
+                                    <hr class="my-4" />
+                                    <h6>Instructions</h6>
+                                    <ul class="mb-0">
+                                        <li>One row per candidate.</li>
+                                        <li>Dates must be ISO-friendly (YYYY-MM-DD) and will be converted to ISO
+                                            timestamps.</li>
+                                        <li>Skills should be MongoDB ObjectId values separated by commas.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                    <footer class="py-4 bg-light mt-auto">
+                        <div class="container-fluid px-4">
+                            <div class="d-flex align-items-center justify-content-between small">
+                                <div class="text-muted">Copyright &copy; Your Website 2023</div>
+                                <div>
+                                    <a href="#">Privacy Policy</a>
+                                    &middot;
+                                    <a href="#">Terms &amp; Conditions</a>
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+        </div>
+
+        <script>
+            $(function () {
+                const $form = $('#bulkForm');
+                const $btn = $('#uploadBtn');
+                const $btnText = $btn.find('.btn-text');
+                const $spinner = $btn.find('.spinner-border');
+                const $successMessage = $('#successMessage');
+                const $errorMessage = $('#errorMessage');
+                const $errorText = $('#errorText');
+
+                function setLoading(isLoading) {
+                    if (isLoading) {
+                        $btn.prop('disabled', true);
+                        $spinner.removeClass('d-none');
+                        $btnText.text('Uploading...');
+                    } else {
+                        $btn.prop('disabled', false);
+                        $spinner.addClass('d-none');
+                        $btnText.text('Upload');
+                    }
+                }
+
+                function showSuccess(message) {
+                    if (message) $('#successMessage span').text(message);
+                    $successMessage.removeClass('d-none');
+                    $errorMessage.addClass('d-none');
+                }
+
+                function showError(message) {
+                    $errorText.text(message || 'Something went wrong. Please try again.');
+                    $errorMessage.removeClass('d-none');
+                    $successMessage.addClass('d-none');
+                }
+
+                function hideMessages() {
+                    $successMessage.addClass('d-none');
+                    $errorMessage.addClass('d-none');
+                }
+
+                $('#downloadSample').on('click', function (e) {
+                    e.preventDefault();
+                    const sample = [
+                        'first_name,last_name,email,phone,scheduledDate,actualDate,status,skills',
+                        'John,Doe,john@example.com,9999999999,2025-08-06,,new,64aa11111111111111111111|64bb22222222222222222222',
+                    ].join('\n');
+                    const blob = new Blob([sample], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'sample-candidates.csv';
+                    link.click();
+                    URL.revokeObjectURL(url);
+                });
+
+                $form.on('submit', function (e) {
+                    e.preventDefault();
+                    hideMessages();
+                    const fileInput = document.getElementById('file');
+                    if (!fileInput.files || fileInput.files.length === 0) {
+                        showError('Please choose a CSV file.');
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('file', fileInput.files[0]);
+
+                    setLoading(true);
+                    $.ajax({
+                        url: '/candidates/bulk',
+                        method: 'POST',
+                        processData: false,
+                        contentType: false,
+                        data: formData,
+                        success: function (res) {
+                            showSuccess(res?.message || 'Uploaded successfully.');
+                            $form[0].reset();
+                        },
+                        error: function (xhr) {
+                            let message = 'Something went wrong. Please try again.';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                message = xhr.responseJSON.message;
+                            } else if (xhr.status === 404) {
+                                message = 'Endpoint not found. Please ensure the API route for bulk upload is available.';
+                            }
+                            showError(message);
+                        },
+                        complete: function () {
+                            setLoading(false);
+                        },
+                    });
+                });
+            });
+        </script>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+            crossorigin="anonymous"></script>
+        <script src="/js/scripts.js"></script>
+</body>
+
+</html>

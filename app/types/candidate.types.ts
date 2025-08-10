@@ -5,17 +5,17 @@ interface Contact{
     email:String
 }
 
-interface Arrival{
-    sechudeldDate:Date,
-    actualDate:Date,
-    status:String
+interface Arrival {
+  scheduledDate: Date;
+  actualDate: Date ;
+  status: String;
 }
 
 export interface CandidateDocument extends Document{
     first_name:String,
     last_name:String,
     contact:Contact,
-    skills:[Types.ObjectId],
+    skills:Types.ObjectId[],
     arrival:Arrival,
     status:String,
     recruiter_id:Types.ObjectId
