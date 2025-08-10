@@ -25,7 +25,7 @@ const ArrivalSchema = new Schema(
       required: true,
     },
     actualDate: {
-      type: Date,
+      type: Date ,
       required: false,
     },
     status: {

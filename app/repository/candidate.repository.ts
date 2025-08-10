@@ -11,6 +11,7 @@ export class CandidateRepository{
           const newcandidate = await CandidateModel.create(candidateData)
           return newcandidate
        } catch (error) {
+        console.log(error)
         throw new Error(
           `Failed to create candidate:${
             error instanceof Error ? error.message : "Unknown error"

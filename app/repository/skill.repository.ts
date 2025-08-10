@@ -5,7 +5,7 @@ import slugify from 'slugify'
 export class SkillRepository{
    static async createSkill(skillname:string):Promise<SkillDocument>{
      try {
-        const skill_slug = slugify(skillname)
+        const skill_slug = slugify(skillname,{lower:true})
         const createdSkill = await SkillModel.create({
             name:skillname,
             skill_slug:skill_slug

@@ -7,7 +7,7 @@ interface Contact{
 
 interface Arrival {
   scheduledDate: Date;
-  actualDate: Date ;
+  actualDate: Date | undefined ;
   status: String;
 }
 
